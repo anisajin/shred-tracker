@@ -3,6 +3,7 @@ import GoalTracker from "./components/GoalTracker";
 import DailyTracker from "./components/DailyTracker";
 import WaterEggTracker from "./components/WaterEggTracker";
 import WeightChart from "./components/WeightChart";
+import HistoryPage from "./components/HistoryPage";
 
 const tasks = [
   "Workout done",
@@ -20,8 +21,38 @@ export default function App() {
   const [weight, setWeight] = useState("");
   const [history, setHistory] = useState([]);
   const [streak, setStreak] = useState(0);
+  const [page, setPage] = useState("home");
 
-  // ✅ LOAD DATA
+  // 🔔 Smart Notifications
+  useEffect(() => {
+    if ("Notification" in window) {
+      Notification.requestPermission();
+    }
+
+    const scheduleReminder = () => {
+      if (Notification.permission !== "granted") return;
+
+      const hour = new Date().getHours();
+
+      if (hour === 7) {
+        new Notification("🏋️ Time for workout!");
+      }
+
+      if ([10, 14, 18].includes(hour)) {
+        new Notification("🍗 Eat protein / eggs!");
+      }
+
+      if (hour % 2 === 0) {
+        new Notification("💧 Drink water!");
+      }
+    };
+
+    const interval = setInterval(scheduleReminder, 60 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // 📦 Load Data
   useEffect(() => {
     try {
       const saved = JSON.parse(localStorage.getItem("shred-data"));
@@ -32,12 +63,12 @@ export default function App() {
         setHistory(saved.history || []);
         setStreak(saved.streak || 0);
       }
-    } catch (e) {
+    } catch {
       console.log("Error loading data");
     }
   }, []);
 
-  // ✅ SAVE DATA
+  // 💾 Save Data
   useEffect(() => {
     localStorage.setItem(
       "shred-data",
@@ -46,14 +77,28 @@ export default function App() {
   }, [checked, water, eggs, history, streak]);
 
   const toggle = (task) => {
-    setChecked(prev => ({ ...prev, [task]: !prev[task] }));
+    setChecked((prev) => ({ ...prev, [task]: !prev[task] }));
   };
 
   const count = Object.values(checked).filter(Boolean).length;
 
   const reset = () => {
     if (!confirm("End day?")) return;
-    if (count === tasks.length) setStreak(s => s + 1);
+
+    const newEntry = {
+      date: new Date().toLocaleDateString(),
+      completed: count,
+      water,
+      eggs,
+    };
+
+    const existing = JSON.parse(localStorage.getItem("history")) || [];
+    localStorage.setItem("history", JSON.stringify([...existing, newEntry]));
+
+    if (count === tasks.length) {
+      setStreak((prev) => prev + 1);
+    }
+
     setChecked({});
     setWater(0);
     setEggs(0);
@@ -61,61 +106,98 @@ export default function App() {
 
   const addWeight = () => {
     if (!weight) return;
-    setHistory(prev => [
+
+    setHistory((prev) => [
       ...prev,
-      { date: new Date().toLocaleDateString(), weight: Number(weight) },
+      {
+        date: new Date().toLocaleDateString(),
+        weight: Number(weight),
+      },
     ]);
+
     setWeight("");
   };
 
-  // ✅ 100 Day Logic
+  // 🎯 100 Day Goal Logic
   const totalDays = 100;
   const dayProgress = Math.min(streak, totalDays);
   const progressPercent = (dayProgress / totalDays) * 100;
-  console.log("Count:", count, "Total:", tasks.length, "Streak:", streak);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0f172a] via-[#020617] to-black flex items-center justify-center p-5">
-      <div className="w-full max-w-md space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-[#0f172a] via-[#020617] to-black flex items-center justify-center p-5 relative">
 
-        <GoalTracker 
-          day={dayProgress} 
-          total={totalDays} 
-          percent={progressPercent} 
-        />
+      {/* Glow Background */}
+      <div className="absolute w-[400px] h-[400px] bg-green-500 blur-[120px] opacity-20 rounded-full top-10 left-1/2 -translate-x-1/2"></div>
 
-        {/* ✅ Show completion message HERE */}
-        {dayProgress === totalDays && (
-          <p className="text-green-400 text-center">
-            🔥 You completed the 100-day challenge!
-          </p>
+      <div className="w-full max-w-md space-y-6 z-10">
+
+        {/* HOME PAGE */}
+        {page === "home" && (
+          <>
+            <GoalTracker
+              day={dayProgress}
+              total={totalDays}
+              percent={progressPercent}
+            />
+
+            {dayProgress === totalDays && (
+              <p className="text-green-400 text-center">
+                🔥 You completed the 100-day challenge!
+              </p>
+            )}
+
+            <DailyTracker
+              tasks={tasks}
+              checked={checked}
+              toggle={toggle}
+              count={count}
+              total={tasks.length}
+              reset={reset}
+              streak={streak}
+            />
+
+            <WaterEggTracker
+              water={water}
+              addWater={() =>
+                setWater((w) => Math.min(w + 250, 4000))
+              }
+              eggs={eggs}
+              setEggs={setEggs}
+            />
+
+            <WeightChart
+              weight={weight}
+              setWeight={setWeight}
+              addWeight={addWeight}
+              history={history}
+            />
+          </>
         )}
 
-        <DailyTracker
-          tasks={tasks}
-          checked={checked}
-          toggle={toggle}
-          count={count}
-          total={tasks.length}
-          reset={reset}
-          streak={streak}
-        />
+        {/* HISTORY PAGE */}
+        {page === "history" && <HistoryPage />}
+      </div>
 
-        <WaterEggTracker
-          water={water}
-          addWater={() => setWater(w => Math.min(w + 250, 4000))}
-          eggs={eggs}
-          setEggs={setEggs}
-        />
+      {/* 🔻 Bottom Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 bg-black/80 backdrop-blur-md border-t border-white/10 flex justify-around py-3 text-white">
 
-        <WeightChart
-          weight={weight}
-          setWeight={setWeight}
-          addWeight={addWeight}
-          history={history}
-        />
+        <button
+          onClick={() => setPage("home")}
+          className="flex flex-col items-center text-sm"
+        >
+          🏠
+          <span>Home</span>
+        </button>
+
+        <button
+          onClick={() => setPage("history")}
+          className="flex flex-col items-center text-sm"
+        >
+          📅
+          <span>History</span>
+        </button>
 
       </div>
     </div>
-    
   );
 }
