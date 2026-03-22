@@ -124,12 +124,12 @@ export default function App() {
   const progressPercent = (dayProgress / totalDays) * 100;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0f172a] via-[#020617] to-black flex items-center justify-center p-5 relative">
+    <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-[#0f172a] via-[#020617] to-black flex items-center justify-center p-5 relative">
 
       {/* Glow Background */}
-      <div className="absolute w-[400px] h-[400px] bg-green-500 blur-[120px] opacity-20 rounded-full top-10 left-1/2 -translate-x-1/2"></div>
+      <div className="absolute w-[300px] sm:w-[400px] h-[300px] sm:h-[400px]  bg-green-500 blur-[120px] opacity-20 rounded-full top-10 left-1/2 -translate-x-1/2"></div>
 
-      <div className="w-full max-w-md space-y-6 z-10">
+      <div className="w-full max-w-md space-y-6 z-10 pb-24">
 
         {/* HOME PAGE */}
         {page === "home" && (
@@ -177,26 +177,31 @@ export default function App() {
         {/* HISTORY PAGE */}
         {page === "history" && <HistoryPage />}
       </div>
-
       {/* 🔻 Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-black/80 backdrop-blur-md border-t border-white/10 flex justify-around py-3 text-white">
+      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 w-full max-w-md px-4 z-10">
+        <div className="bg-black/80 backdrop-blur-md border border-white/10 rounded-xl flex justify-around py-3 text-white shadow-lg">
 
-        <button
-          onClick={() => setPage("home")}
-          className="flex flex-col items-center text-sm"
-        >
-          🏠
-          <span>Home</span>
-        </button>
+          {/* HOME */}
+          <button
+            onClick={() => setPage("home")}
+            className={`flex flex-col items-center text-sm ${page === "home" ? "text-green-400" : "text-gray-400"
+              }`}
+          >
+            🏠
+            <span>Home</span>
+          </button>
 
-        <button
-          onClick={() => setPage("history")}
-          className="flex flex-col items-center text-sm"
-        >
-          📅
-          <span>History</span>
-        </button>
+          {/* HISTORY */}
+          <button
+            onClick={() => setPage("history")}
+            className={`flex flex-col items-center text-sm ${page === "history" ? "text-green-400" : "text-gray-400"
+              }`}
+          >
+            📅
+            <span>History</span>
+          </button>
 
+        </div>
       </div>
     </div>
   );
